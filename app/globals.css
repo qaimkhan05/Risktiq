@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 40 44% 98%;
+  --foreground: 223 42% 12%;
+  --muted: 215 38% 95%;
+  --muted-foreground: 221 17% 39%;
+  --card: 0 0% 100%;
+  --border: 220 29% 84%;
+  --primary: 169 76% 27%;
+  --accent: 213 88% 54%;
+  --success: 156 69% 36%;
+  --warning: 39 92% 54%;
+  --danger: 1 83% 63%;
+  --font-sans: "Manrope", sans-serif;
+}
+
+.dark {
+  --background: 218 44% 7%;
+  --foreground: 210 29% 96%;
+  --muted: 218 28% 15%;
+  --muted-foreground: 214 18% 70%;
+  --card: 220 35% 11%;
+  --border: 218 18% 20%;
+  --primary: 165 88% 54%;
+  --accent: 198 92% 64%;
+  --success: 156 73% 43%;
+  --warning: 39 92% 56%;
+  --danger: 2 77% 61%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f9f2e6 0%, #edf4ff 34%, #f7fbff 70%, #ffffff 100%);
+  color: hsl(var(--foreground));
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.14), transparent 26%),
+    radial-gradient(circle at 100% 0%, rgba(16, 185, 129, 0.16), transparent 24%),
+    radial-gradient(circle at 50% 100%, rgba(251, 191, 36, 0.1), transparent 28%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size: 88px 88px;
+  mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.78), transparent 90%);
+}
+
+.dark body {
+  background: linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)));
+}
+
+.dark body::before {
+  background:
+    radial-gradient(circle at top left, rgba(22, 255, 187, 0.14), transparent 26%),
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 24%),
+    radial-gradient(circle at bottom center, rgba(14, 165, 233, 0.08), transparent 28%);
+}
+
+.dark body::after {
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+}
+
+::selection {
+  background: rgba(22, 255, 187, 0.28);
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-tight text-foreground;
+  }
+}
+
+@layer components {
+  .container-shell {
+    @apply mx-auto max-w-7xl px-6 lg:px-8;
+  }
+
+  .section-heading {
+    @apply text-3xl font-bold md:text-4xl;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.32em] text-primary;
+  }
+
+  .glass-panel {
+    @apply rounded-[28px] border border-border/60 bg-card/85 shadow-[0_22px_50px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-soft;
+  }
+
+  .gradient-ring {
+    background: linear-gradient(135deg, rgba(22, 255, 187, 0.18), rgba(56, 189, 248, 0.14));
+  }
+}
+
+.tradingview-widget-copyright {
+  padding-top: 10px;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+.tradingview-widget-copyright a {
+  color: hsl(var(--accent));
+  text-decoration: none;
+}
