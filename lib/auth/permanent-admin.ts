@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
+import { canUseDatabaseAtRuntime } from "@/lib/runtime";
 
 const FALLBACK_ADMIN_EMAIL = "qaim22@gmail.com";
 const FALLBACK_ADMIN_PASSWORD = "qaqaqa12";
@@ -44,6 +45,10 @@ async function upsertPermanentAdminUser() {
 }
 
 export async function syncPermanentAdminUser() {
+  if (!canUseDatabaseAtRuntime()) {
+    return;
+  }
+
   if (!permanentAdminSyncPromise) {
     permanentAdminSyncPromise = upsertPermanentAdminUser().catch((error) => {
       permanentAdminSyncPromise = null;

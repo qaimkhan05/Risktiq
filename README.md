@@ -58,6 +58,14 @@ npx prisma db push
 npm run dev
 ```
 
+When you run `npm run dev`, Risktiq now starts on `0.0.0.0` and prints a LAN share link like `http://192.168.x.x:3000` so other devices on the same Wi-Fi can open it.
+
+If you only want to print the LAN link without starting the app:
+
+```bash
+npm run dev:share-info
+```
+
 ## Vercel Deployment
 
 For production on Vercel, do not deploy with SQLite as your live database. SQLite is fine for local development, but Vercel needs a hosted database for persistent user accounts and trade data.
@@ -82,6 +90,30 @@ Recommended production services:
 - PostgreSQL: Neon or Vercel Postgres
 - Email: SMTP provider such as Brevo, Resend SMTP, or Gmail SMTP
 - Screenshots: Cloudinary for persistent image storage
+
+## Netlify Deployment
+
+Netlify fully supports the Next.js App Router through its maintained adapter, and this project is now guarded so build-time page generation does not try to write to Prisma before runtime.
+
+Use this setup on Netlify:
+
+1. Create a hosted PostgreSQL database such as Neon or Supabase.
+2. In Netlify site environment variables, add:
+   - `DATABASE_PROVIDER=postgresql`
+   - `DATABASE_URL=<your-hosted-postgres-connection-string>`
+   - `NEXTAUTH_SECRET=<strong-random-secret>`
+   - `NEXTAUTH_URL=https://your-site.netlify.app`
+   - `APP_URL=https://your-site.netlify.app`
+   - `SUPPORT_EMAIL=qaimation@gmail.com`
+   - Optional: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SMTP_*`, `CLOUDINARY_*`
+3. Redeploy the site after saving environment variables.
+4. Run your database sync against the hosted database before using signup in production.
+5. Open `/api/health` after deploy and confirm it returns `status: "ok"`.
+
+Important:
+
+- Do not rely on SQLite for live Netlify production data.
+- Set database secrets in the Netlify UI. Netlify documents that variables declared only in `netlify.toml` are not available to Functions at runtime.
 
 ## Validation
 

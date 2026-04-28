@@ -4,6 +4,8 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "@/components/auth/login-form";
 import { getCurrentSession } from "@/lib/auth/session";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   const session = await getCurrentSession();
   const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
