@@ -1,2 +1,1 @@
-export { db, pool } from "@workspace/db";
-export * as schema from "@workspace/db/schema";
+export { db, createId, sanitizeDoc, sanitizeDocs, databaseProvider, databaseEngine } from "@workspace/db";

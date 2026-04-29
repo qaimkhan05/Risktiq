@@ -1,58 +1,52 @@
-import { ne, isNotNull, eq, desc, and, count } from "drizzle-orm";
-import { db } from "./db";
-import { users, tradingProfiles, trades, dailyReflections, goals } from "@workspace/db/schema";
+import { db, sanitizeDoc, sanitizeDocs } from "./db";
 import { normalizeTradingProfile } from "./profile";
 
 export async function getAdminJournalWorkspace() {
+  const { users, tradingProfiles, trades, dailyReflections, goals } = await db.getCollections();
   const [
-    customerCountResult,
-    verifiedCountResult,
-    totalTradeCountResult,
-    totalReflectionCountResult,
-    customerUsers,
+    customerCount,
+    verifiedCustomerCount,
+    totalTradeCount,
+    totalReflectionCount,
+    customerUsersRaw,
     recentPlatformTradesRaw,
   ] = await Promise.all([
-    db.select({ value: count() }).from(users).where(ne(users.role, "ADMIN")),
-    db.select({ value: count() }).from(users).where(and(ne(users.role, "ADMIN"), isNotNull(users.emailVerified))),
-    db.select({ value: count() }).from(trades),
-    db.select({ value: count() }).from(dailyReflections),
-    db.select().from(users).where(ne(users.role, "ADMIN")).orderBy(desc(users.createdAt)),
-    db
-      .select({
-        id: trades.id,
-        userId: trades.userId,
-        tradeDate: trades.tradeDate,
-        assetName: trades.assetName,
-        direction: trades.direction,
-        pnlAmount: trades.pnlAmount,
-        strategyUsed: trades.strategyUsed,
-        outcome: trades.outcome,
-        userEmail: users.email,
-        userName: users.name,
-      })
-      .from(trades)
-      .innerJoin(users, eq(trades.userId, users.id))
-      .orderBy(desc(trades.tradeDate))
-      .limit(18),
+    users.countDocuments({ role: { $ne: "ADMIN" } }),
+    users.countDocuments({ role: { $ne: "ADMIN" }, emailVerified: { $exists: true, $ne: null } }),
+    trades.countDocuments({}),
+    dailyReflections.countDocuments({}),
+    users.find({ role: { $ne: "ADMIN" } }).sort({ createdAt: -1 }).toArray(),
+    trades.find({}).sort({ tradeDate: -1 }).limit(18).toArray(),
   ]);
+
+  const customerUsers = sanitizeDocs(customerUsersRaw);
+  const recentPlatformTradesDocs = sanitizeDocs(recentPlatformTradesRaw);
+  const recentTradeUserIds = [...new Set(recentPlatformTradesDocs.map((trade) => trade.userId))];
+  const recentTradeUsers = recentTradeUserIds.length
+    ? sanitizeDocs(await users.find({ id: { $in: recentTradeUserIds } }).toArray())
+    : [];
+  const recentTradeUserMap = new Map(recentTradeUsers.map((user) => [user.id, user]));
 
   const customerJournals = await Promise.all(
     customerUsers.map(async (user) => {
-      const [profileArr, userTrades, userReflections, userGoals] = await Promise.all([
-        db.select().from(tradingProfiles).where(eq(tradingProfiles.userId, user.id)).limit(1),
-        db.select().from(trades).where(eq(trades.userId, user.id)).orderBy(desc(trades.tradeDate)),
-        db
-          .select()
-          .from(dailyReflections)
-          .where(eq(dailyReflections.userId, user.id))
-          .orderBy(desc(dailyReflections.reflectionDate))
-          .limit(1),
-        db.select().from(goals).where(eq(goals.userId, user.id)).orderBy(desc(goals.createdAt)).limit(3),
+      const [profileRaw, userTradesRaw, userReflectionsRaw, userGoalsRaw] = await Promise.all([
+        tradingProfiles.findOne({ userId: user.id }),
+        trades.find({ userId: user.id }).sort({ tradeDate: -1 }).toArray(),
+        dailyReflections.find({ userId: user.id }).sort({ reflectionDate: -1 }).limit(1).toArray(),
+        goals.find({ userId: user.id }).sort({ createdAt: -1 }).limit(3).toArray(),
       ]);
+      const profile = sanitizeDoc(profileRaw);
+      const userTrades = sanitizeDocs(userTradesRaw);
+      const userReflections = sanitizeDocs(userReflectionsRaw);
+      const userGoals = sanitizeDocs(userGoalsRaw);
       const recentTrades = userTrades.slice(0, 4);
       return {
-        ...user,
-        profile: normalizeTradingProfile(profileArr[0] ?? null),
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        emailVerified: Boolean(user.emailVerified),
+        createdAt: user.createdAt,
+        profile: normalizeTradingProfile(profile),
         trades: recentTrades,
         reflections: userReflections,
         goals: userGoals,
@@ -69,23 +63,26 @@ export async function getAdminJournalWorkspace() {
     }),
   );
 
-  const recentPlatformTrades = recentPlatformTradesRaw.map((t) => ({
-    id: t.id,
-    userId: t.userId,
-    tradeDate: t.tradeDate,
-    assetName: t.assetName,
-    direction: t.direction,
-    pnlAmount: t.pnlAmount,
-    strategyUsed: t.strategyUsed,
-    outcome: t.outcome,
-    user: { email: t.userEmail, name: t.userName },
-  }));
+  const recentPlatformTrades = recentPlatformTradesDocs.map((trade) => {
+    const user = recentTradeUserMap.get(trade.userId);
+    return {
+      id: trade.id,
+      userId: trade.userId,
+      tradeDate: trade.tradeDate,
+      assetName: trade.assetName,
+      direction: trade.direction,
+      pnlAmount: trade.pnlAmount,
+      strategyUsed: trade.strategyUsed,
+      outcome: trade.outcome,
+      user: { email: user?.email ?? "", name: user?.name ?? null },
+    };
+  });
 
   return {
-    customerCount: customerCountResult[0]?.value ?? 0,
-    verifiedCustomerCount: verifiedCountResult[0]?.value ?? 0,
-    totalTradeCount: totalTradeCountResult[0]?.value ?? 0,
-    totalReflectionCount: totalReflectionCountResult[0]?.value ?? 0,
+    customerCount,
+    verifiedCustomerCount,
+    totalTradeCount,
+    totalReflectionCount,
     customerJournals,
     recentPlatformTrades,
   };

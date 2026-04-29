@@ -1,29 +1,27 @@
-import { eq, desc } from "drizzle-orm";
-import { db } from "./db";
-import { tradingProfiles, trades, dailyReflections, goals } from "@workspace/db/schema";
+import { db, sanitizeDoc, sanitizeDocs } from "./db";
 import { buildDashboardSnapshot } from "./analytics/dashboard";
 import { normalizeTradingProfile } from "./profile";
 
 export async function getUserWorkspace(userId: string) {
-  const [rawProfileArr, userTrades, userReflections, userGoals] = await Promise.all([
-    db.select().from(tradingProfiles).where(eq(tradingProfiles.userId, userId)).limit(1),
-    db.select().from(trades).where(eq(trades.userId, userId)).orderBy(desc(trades.tradeDate)),
-    db
-      .select()
-      .from(dailyReflections)
-      .where(eq(dailyReflections.userId, userId))
-      .orderBy(desc(dailyReflections.reflectionDate)),
-    db.select().from(goals).where(eq(goals.userId, userId)).orderBy(desc(goals.createdAt)),
+  const { tradingProfiles, trades, dailyReflections, goals } = await db.getCollections();
+  const [rawProfile, userTradesRaw, userReflectionsRaw, userGoalsRaw] = await Promise.all([
+    tradingProfiles.findOne({ userId }),
+    trades.find({ userId }).sort({ tradeDate: -1 }).toArray(),
+    dailyReflections.find({ userId }).sort({ reflectionDate: -1 }).toArray(),
+    goals.find({ userId }).sort({ createdAt: -1 }).toArray(),
   ]);
-  const rawProfile = rawProfileArr[0] ?? null;
-  const profile = normalizeTradingProfile(rawProfile);
+  const profileDoc = sanitizeDoc(rawProfile);
+  const userTrades = sanitizeDocs(userTradesRaw);
+  const userReflections = sanitizeDocs(userReflectionsRaw);
+  const userGoals = sanitizeDocs(userGoalsRaw);
+  const profile = normalizeTradingProfile(profileDoc);
   return {
     profile,
     trades: userTrades,
     reflections: userReflections,
     goals: userGoals,
     snapshot: buildDashboardSnapshot({
-      profile: rawProfile,
+      profile: profileDoc,
       trades: userTrades,
       reflections: userReflections,
       goals: userGoals,

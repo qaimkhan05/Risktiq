@@ -1,6 +1,4 @@
-import { eq } from "drizzle-orm";
-import { db } from "./db";
-import { users } from "@workspace/db/schema";
+import { db, createId, sanitizeDoc } from "./db";
 import { hashPassword } from "./password";
 import { logger } from "./logger";
 
@@ -21,14 +19,34 @@ let permanentAdminSyncPromise: Promise<void> | null = null;
 async function upsertPermanentAdminUser() {
   const { email, password, name } = getPermanentAdminConfig();
   const passwordHash = await hashPassword(password);
-  const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const { users } = await db.getCollections();
+  const existing = sanitizeDoc(await users.findOne({ email }));
   if (existing) {
-    await db
-      .update(users)
-      .set({ name, role: "ADMIN", emailVerified: new Date(), passwordHash, updatedAt: new Date() })
-      .where(eq(users.id, existing.id));
+    await users.updateOne(
+      { id: existing.id },
+      {
+        $set: {
+          name,
+          role: "ADMIN",
+          emailVerified: new Date(),
+          passwordHash,
+          updatedAt: new Date(),
+        },
+      },
+    );
   } else {
-    await db.insert(users).values({ name, email, role: "ADMIN", emailVerified: new Date(), passwordHash });
+    const now = new Date();
+    await users.insertOne({
+      id: createId(),
+      name,
+      email,
+      emailVerified: now,
+      image: null,
+      passwordHash,
+      role: "ADMIN",
+      createdAt: now,
+      updatedAt: now,
+    });
   }
 }
 

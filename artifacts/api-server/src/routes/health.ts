@@ -1,23 +1,24 @@
 import { Router } from "express";
-import { sql } from "drizzle-orm";
-import { db } from "../lib/db";
+import { db, databaseEngine, databaseProvider } from "../lib/db";
 
 const router: Router = Router();
 
 router.get("/", async (_req, res) => {
   try {
-    await db.execute(sql`SELECT 1`);
+    await db.ping();
     res.json({
       status: "ok",
       app: "Risktiq",
-      databaseProvider: "postgres",
+      databaseProvider,
+      databaseEngine,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     res.status(503).json({
       status: "error",
       app: "Risktiq",
-      databaseProvider: "postgres",
+      databaseProvider,
+      databaseEngine,
       timestamp: new Date().toISOString(),
       error: error instanceof Error ? error.message : "Database connectivity failed.",
     });

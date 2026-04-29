@@ -1,7 +1,5 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
-import { db } from "../lib/db";
-import { users } from "@workspace/db/schema";
+import { db, createId, sanitizeDoc } from "../lib/db";
 import {
   loginSchema,
   registerSchema,
@@ -34,9 +32,10 @@ const router: Router = Router();
 router.post("/register", async (req, res) => {
   try {
     await syncPermanentAdminUser().catch(() => {});
+    const { users } = await db.getCollections();
     const payload = registerSchema.parse(req.body);
     const email = payload.email.toLowerCase();
-    const [existingUser] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const existingUser = sanitizeDoc(await users.findOne({ email }));
 
     const baseUrl = getBaseUrl(req);
 
@@ -54,10 +53,19 @@ router.post("/register", async (req, res) => {
     }
 
     const passwordHash = await hashPassword(payload.password);
-    const [user] = await db
-      .insert(users)
-      .values({ name: payload.fullName, email, passwordHash })
-      .returning();
+    const now = new Date();
+    const user = {
+      id: createId(),
+      name: payload.fullName,
+      email,
+      emailVerified: null,
+      image: null,
+      passwordHash,
+      role: "USER",
+      createdAt: now,
+      updatedAt: now,
+    };
+    await users.insertOne(user);
 
     const verificationToken = await createEmailVerificationToken(email);
     const verificationUrl = `${baseUrl}/api/auth/verify-email?email=${encodeURIComponent(email)}&token=${verificationToken}`;
@@ -79,9 +87,10 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     await syncPermanentAdminUser().catch(() => {});
+    const { users } = await db.getCollections();
     const payload = loginSchema.parse(req.body);
     const email = payload.email.toLowerCase();
-    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const user = sanitizeDoc(await users.findOne({ email }));
 
     if (!user?.passwordHash) {
       return res.status(401).json({ error: "Invalid email or password." });
@@ -116,10 +125,11 @@ router.get("/me", async (req, res) => {
 
 router.post("/forgot-password", async (req, res) => {
   try {
+    const { users } = await db.getCollections();
     const payload = forgotPasswordSchema.parse(req.body);
     const email = payload.email.toLowerCase();
     let previewResetUrl: string | null = null;
-    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const user = sanitizeDoc(await users.findOne({ email }));
     if (user) {
       const token = await createPasswordResetToken(user.id);
       const resetLink = `${getBaseUrl(req)}/reset-password?token=${token}`;
@@ -137,13 +147,14 @@ router.post("/forgot-password", async (req, res) => {
 
 router.post("/reset-password", async (req, res) => {
   try {
+    const { users } = await db.getCollections();
     const payload = resetPasswordSchema.parse(req.body);
     const user = await consumePasswordResetToken(payload.token);
     if (!user) {
       return res.status(400).json({ error: "This reset link is invalid or expired." });
     }
     const passwordHash = await hashPassword(payload.password);
-    await db.update(users).set({ passwordHash, updatedAt: new Date() }).where(eq(users.id, user.id));
+    await users.updateOne({ id: user.id }, { $set: { passwordHash, updatedAt: new Date() } });
     await destroyAllUserSessions(user.id);
     return res.json({ message: "Your password has been updated successfully." });
   } catch (error) {
@@ -153,9 +164,10 @@ router.post("/reset-password", async (req, res) => {
 
 router.post("/resend-verification", async (req, res) => {
   try {
+    const { users } = await db.getCollections();
     const payload = forgotPasswordSchema.parse(req.body);
     const email = payload.email.toLowerCase();
-    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const user = sanitizeDoc(await users.findOne({ email }));
     if (!user) {
       return res.json({
         message: "If this account exists and is unverified, a new verification link has been generated.",
@@ -179,6 +191,7 @@ router.post("/resend-verification", async (req, res) => {
 });
 
 router.get("/verify-email", async (req, res) => {
+  const { users } = await db.getCollections();
   const email = typeof req.query.email === "string" ? req.query.email : null;
   const token = typeof req.query.token === "string" ? req.query.token : null;
   const baseUrl = getBaseUrl(req);
@@ -187,7 +200,10 @@ router.get("/verify-email", async (req, res) => {
   if (!email || !token) return loginRedirect("invalid");
   const valid = await consumeEmailVerificationToken(email, token);
   if (!valid) return loginRedirect("invalid");
-  await db.update(users).set({ emailVerified: new Date() }).where(eq(users.email, email.toLowerCase()));
+  await users.updateOne(
+    { email: email.toLowerCase() },
+    { $set: { emailVerified: new Date(), updatedAt: new Date() } },
+  );
   return loginRedirect("success");
 });
 

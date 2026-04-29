@@ -1,7 +1,5 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
-import { db } from "../lib/db";
-import { tradingProfiles, users } from "@workspace/db/schema";
+import { db, createId, sanitizeDoc } from "../lib/db";
 import { profileSchema } from "../lib/validation";
 import { requireUser, type AppUser } from "../lib/auth";
 import { normalizeTradingProfile, serializePreferredStrategies } from "../lib/profile";
@@ -10,51 +8,52 @@ const router: Router = Router();
 
 router.post("/", requireUser(), async (req, res) => {
   try {
+    const { tradingProfiles, users } = await db.getCollections();
     const user = (req as typeof req & { user: AppUser }).user;
     const payload = profileSchema.parse(req.body);
     const serialized = serializePreferredStrategies(payload.preferredStrategies);
 
-    const [existing] = await db
-      .select()
-      .from(tradingProfiles)
-      .where(eq(tradingProfiles.userId, user.id))
-      .limit(1);
+    const existing = sanitizeDoc(await tradingProfiles.findOne({ userId: user.id }));
 
     let profile;
     if (existing) {
-      [profile] = await db
-        .update(tradingProfiles)
-        .set({
-          fullName: payload.fullName,
-          tradingStyle: payload.tradingStyle,
-          dailyTradeLimit: payload.dailyTradeLimit,
-          weeklyTradeLimit: payload.weeklyTradeLimit,
-          monthlyProfitTarget: payload.monthlyProfitTarget,
-          monthlyLossLimit: payload.monthlyLossLimit,
-          preferredStrategies: serialized,
-          riskPerTrade: payload.riskPerTrade,
-          updatedAt: new Date(),
-        })
-        .where(eq(tradingProfiles.id, existing.id))
-        .returning();
+      await tradingProfiles.updateOne(
+        { id: existing.id },
+        {
+          $set: {
+            fullName: payload.fullName,
+            tradingStyle: payload.tradingStyle,
+            dailyTradeLimit: payload.dailyTradeLimit,
+            weeklyTradeLimit: payload.weeklyTradeLimit,
+            monthlyProfitTarget: payload.monthlyProfitTarget,
+            monthlyLossLimit: payload.monthlyLossLimit,
+            preferredStrategies: serialized,
+            riskPerTrade: payload.riskPerTrade,
+            updatedAt: new Date(),
+          },
+        },
+      );
+      profile = sanitizeDoc(await tradingProfiles.findOne({ id: existing.id }));
     } else {
-      [profile] = await db
-        .insert(tradingProfiles)
-        .values({
-          userId: user.id,
-          fullName: payload.fullName,
-          tradingStyle: payload.tradingStyle,
-          dailyTradeLimit: payload.dailyTradeLimit,
-          weeklyTradeLimit: payload.weeklyTradeLimit,
-          monthlyProfitTarget: payload.monthlyProfitTarget,
-          monthlyLossLimit: payload.monthlyLossLimit,
-          preferredStrategies: serialized,
-          riskPerTrade: payload.riskPerTrade,
-        })
-        .returning();
+      const now = new Date();
+      profile = {
+        id: createId(),
+        userId: user.id,
+        fullName: payload.fullName,
+        tradingStyle: payload.tradingStyle,
+        dailyTradeLimit: payload.dailyTradeLimit,
+        weeklyTradeLimit: payload.weeklyTradeLimit,
+        monthlyProfitTarget: payload.monthlyProfitTarget,
+        monthlyLossLimit: payload.monthlyLossLimit,
+        preferredStrategies: serialized,
+        riskPerTrade: payload.riskPerTrade,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await tradingProfiles.insertOne(profile);
     }
 
-    await db.update(users).set({ name: payload.fullName, updatedAt: new Date() }).where(eq(users.id, user.id));
+    await users.updateOne({ id: user.id }, { $set: { name: payload.fullName, updatedAt: new Date() } });
 
     res.json({ message: "Profile saved successfully.", profile: normalizeTradingProfile(profile) });
   } catch (error) {

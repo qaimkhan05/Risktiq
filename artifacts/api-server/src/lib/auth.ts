@@ -1,9 +1,8 @@
 import crypto from "node:crypto";
 import type { Request, Response, NextFunction } from "express";
 import { addDays } from "date-fns";
-import { eq, and, gt } from "drizzle-orm";
-import { db } from "./db";
-import { sessions, users, type User } from "@workspace/db/schema";
+import { db, createId, sanitizeDoc } from "./db";
+import type { User } from "@workspace/db/schema";
 
 const SESSION_COOKIE = "risktiq_session";
 const SESSION_TTL_DAYS = 30;
@@ -13,7 +12,14 @@ export type AppUser = Pick<User, "id" | "email" | "name" | "image" | "role">;
 export async function createSession(userId: string, res: Response) {
   const token = crypto.randomBytes(48).toString("hex");
   const expires = addDays(new Date(), SESSION_TTL_DAYS);
-  await db.insert(sessions).values({ sessionToken: token, userId, expires });
+  const { sessions } = await db.getCollections();
+  await sessions.insertOne({
+    id: createId(),
+    sessionToken: token,
+    userId,
+    expires,
+    createdAt: new Date(),
+  });
   res.cookie(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -27,7 +33,8 @@ export async function createSession(userId: string, res: Response) {
 export async function destroySession(req: Request, res: Response) {
   const token = req.cookies?.[SESSION_COOKIE];
   if (token) {
-    await db.delete(sessions).where(eq(sessions.sessionToken, token));
+    const { sessions } = await db.getCollections();
+    await sessions.deleteOne({ sessionToken: token });
   }
   res.clearCookie(SESSION_COOKIE, { path: "/" });
 }
@@ -35,26 +42,19 @@ export async function destroySession(req: Request, res: Response) {
 export async function getSessionUser(req: Request): Promise<AppUser | null> {
   const token = req.cookies?.[SESSION_COOKIE];
   if (!token) return null;
-  const [record] = await db
-    .select({
-      sessionId: sessions.id,
-      expires: sessions.expires,
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      image: users.image,
-      role: users.role,
-    })
-    .from(sessions)
-    .innerJoin(users, eq(sessions.userId, users.id))
-    .where(and(eq(sessions.sessionToken, token), gt(sessions.expires, new Date())))
-    .limit(1);
-  if (!record) return null;
-  return { id: record.id, email: record.email, name: record.name, image: record.image, role: record.role };
+  const { sessions, users } = await db.getCollections();
+  const session = sanitizeDoc(await sessions.findOne({ sessionToken: token, expires: { $gt: new Date() } }));
+  if (!session) return null;
+
+  const user = sanitizeDoc(await users.findOne({ id: session.userId }));
+  if (!user) return null;
+
+  return { id: user.id, email: user.email, name: user.name, image: user.image, role: user.role };
 }
 
 export async function destroyAllUserSessions(userId: string) {
-  await db.delete(sessions).where(eq(sessions.userId, userId));
+  const { sessions } = await db.getCollections();
+  await sessions.deleteMany({ userId });
 }
 
 export function requireUser() {
