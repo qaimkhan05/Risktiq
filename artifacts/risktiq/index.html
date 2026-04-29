@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Risktiq</title>
+    <meta name="description" content="Risktiq is a premium trading journal SaaS for disciplined execution, analytics, and growth." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+      (function () {
+        try {
+          var storedTheme = window.localStorage.getItem("risktiq-theme") || window.localStorage.getItem("tradecraft-theme");
+          var systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          var theme = storedTheme || systemTheme;
+          var root = document.documentElement;
+          root.classList.toggle("dark", theme === "dark");
+          root.dataset.theme = theme;
+          root.style.colorScheme = theme;
+        } catch (error) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

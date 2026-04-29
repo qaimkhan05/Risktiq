@@ -1,0 +1,229 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-danger: hsl(var(--danger));
+
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
+  --font-sans: var(--app-font-sans);
+  --font-display: var(--app-font-display);
+  --font-mono: var(--app-font-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --background: 40 44% 98%;
+  --foreground: 223 42% 12%;
+  --muted: 215 38% 95%;
+  --muted-foreground: 221 17% 39%;
+  --card: 0 0% 100%;
+  --card-foreground: 223 42% 12%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 223 42% 12%;
+  --border: 220 29% 84%;
+  --input: 220 29% 84%;
+  --ring: 169 76% 27%;
+  --primary: 169 76% 27%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 215 38% 95%;
+  --secondary-foreground: 223 42% 12%;
+  --accent: 213 88% 54%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 1 83% 63%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 156 69% 36%;
+  --warning: 39 92% 54%;
+  --danger: 1 83% 63%;
+  --chart-1: 169 76% 27%;
+  --chart-2: 213 88% 54%;
+  --chart-3: 39 92% 54%;
+  --chart-4: 156 69% 36%;
+  --chart-5: 1 83% 63%;
+  --app-font-sans: "Manrope", system-ui, -apple-system, sans-serif;
+  --app-font-display: "Sora", system-ui, -apple-system, sans-serif;
+  --app-font-mono: ui-monospace, Menlo, monospace;
+  --font-display: var(--app-font-display);
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: 218 44% 7%;
+  --foreground: 210 29% 96%;
+  --muted: 218 28% 15%;
+  --muted-foreground: 214 18% 70%;
+  --card: 220 35% 11%;
+  --card-foreground: 210 29% 96%;
+  --popover: 220 35% 11%;
+  --popover-foreground: 210 29% 96%;
+  --border: 218 18% 20%;
+  --input: 218 18% 20%;
+  --ring: 165 88% 54%;
+  --primary: 165 88% 54%;
+  --primary-foreground: 218 44% 7%;
+  --secondary: 218 28% 15%;
+  --secondary-foreground: 210 29% 96%;
+  --accent: 198 92% 64%;
+  --accent-foreground: 218 44% 7%;
+  --destructive: 2 77% 61%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 156 73% 43%;
+  --warning: 39 92% 56%;
+  --danger: 2 77% 61%;
+  --chart-1: 165 88% 54%;
+  --chart-2: 198 92% 64%;
+  --chart-3: 39 92% 56%;
+  --chart-4: 156 73% 43%;
+  --chart-5: 2 77% 61%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  font-family: var(--app-font-sans);
+  background: linear-gradient(180deg, #f9f2e6 0%, #edf4ff 34%, #f7fbff 70%, #ffffff 100%);
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.14), transparent 26%),
+    radial-gradient(circle at 100% 0%, rgba(16, 185, 129, 0.16), transparent 24%),
+    radial-gradient(circle at 50% 100%, rgba(251, 191, 36, 0.1), transparent 28%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size: 88px 88px;
+  mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.78), transparent 90%);
+}
+
+.dark body {
+  background: linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)));
+}
+
+.dark body::before {
+  background:
+    radial-gradient(circle at top left, rgba(22, 255, 187, 0.14), transparent 26%),
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 24%),
+    radial-gradient(circle at bottom center, rgba(14, 165, 233, 0.08), transparent 28%);
+}
+
+.dark body::after {
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+}
+
+::selection {
+  background: rgba(22, 255, 187, 0.28);
+}
+
+@layer base {
+  h1, h2, h3, h4 {
+    letter-spacing: -0.01em;
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  .container-shell {
+    @apply mx-auto max-w-7xl px-6 lg:px-8;
+  }
+
+  .section-heading {
+    @apply text-3xl font-bold md:text-4xl;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.32em] text-primary;
+  }
+
+  .glass-panel {
+    @apply rounded-[28px] border border-border/60 bg-card/85 shadow-[0_22px_50px_rgba(15,23,42,0.08)] backdrop-blur;
+  }
+
+  .gradient-ring {
+    background: linear-gradient(135deg, rgba(22, 255, 187, 0.18), rgba(56, 189, 248, 0.14));
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  }
+}
+
+.tradingview-widget-copyright {
+  padding-top: 10px;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+
+.tradingview-widget-copyright a {
+  color: hsl(var(--accent));
+  text-decoration: none;
+}
