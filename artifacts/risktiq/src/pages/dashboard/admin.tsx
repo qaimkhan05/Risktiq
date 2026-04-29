@@ -51,7 +51,7 @@ function AdminBody() {
   const { data, isLoading } = useQuery<AdminWorkspace>({
     queryKey: ["admin-workspace"],
     queryFn: async () => {
-      const res = await fetch("/api/admin", { credentials: "include" });
+      const res = await fetch("/api/admin/journal", { credentials: "include" });
       if (!res.ok) throw new Error("Failed to load admin workspace");
       return res.json();
     },
