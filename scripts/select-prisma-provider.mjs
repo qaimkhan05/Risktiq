@@ -47,6 +47,12 @@ async function main() {
       "[prisma] SQLite is not persistent on Vercel. For production deployment, set DATABASE_PROVIDER=postgresql and use a hosted PostgreSQL DATABASE_URL."
     );
   }
+
+  if ((process.env.REPLIT_DEPLOYMENT || process.env.REPLIT_DOMAINS) && provider === "sqlite") {
+    console.warn(
+      "[prisma] SQLite is not persistent on Replit Deployments. Attach a Replit Database or set a PostgreSQL DATABASE_URL before publishing."
+    );
+  }
 }
 
 main().catch((error) => {

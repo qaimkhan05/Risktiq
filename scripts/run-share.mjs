@@ -34,16 +34,37 @@ function shouldOverrideUrl(value) {
   return value.includes("localhost") || value.includes("127.0.0.1");
 }
 
-function printUrls(localUrl, networkUrl) {
+function getReplitUrl() {
+  const deploymentDomain = process.env.REPLIT_DOMAINS?.split(",")
+    .map((value) => value.trim())
+    .find(Boolean);
+
+  if (deploymentDomain) {
+    return `https://${deploymentDomain}`;
+  }
+
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  }
+
+  return null;
+}
+
+function printUrls(localUrl, networkUrl, replitUrl) {
   console.log("");
-  console.log("Risktiq network access");
+  console.log("Risktiq access");
   console.log(`Local:   ${localUrl}`);
 
   if (networkUrl) {
     console.log(`Network: ${networkUrl}`);
-    console.log("Open the Network link on other devices connected to the same Wi-Fi/LAN.");
   } else {
     console.log("Network: No LAN IPv4 address detected on this machine.");
+  }
+
+  if (replitUrl) {
+    console.log(`Replit:  ${replitUrl}`);
+  } else {
+    console.log("Replit:  No Replit domain detected in the environment.");
   }
 
   console.log("");
@@ -54,17 +75,18 @@ const port = Number(process.env.PORT || "3000");
 const lanIpAddress = getLanIpAddress();
 const localUrl = `http://localhost:${port}`;
 const networkUrl = lanIpAddress ? `http://${lanIpAddress}:${port}` : null;
+const replitUrl = getReplitUrl();
 
 if (shouldOverrideUrl(process.env.APP_URL)) {
-  process.env.APP_URL = networkUrl || localUrl;
+  process.env.APP_URL = replitUrl || networkUrl || localUrl;
 }
 
 if (shouldOverrideUrl(process.env.NEXTAUTH_URL)) {
-  process.env.NEXTAUTH_URL = networkUrl || localUrl;
+  process.env.NEXTAUTH_URL = replitUrl || networkUrl || localUrl;
 }
 
 if (mode === "info") {
-  printUrls(localUrl, networkUrl);
+  printUrls(localUrl, networkUrl, replitUrl);
   process.exit(0);
 }
 
@@ -74,7 +96,7 @@ const child = spawn(process.execPath, [nextExecutable, mode, "-H", "0.0.0.0", "-
   env: process.env
 });
 
-printUrls(localUrl, networkUrl);
+printUrls(localUrl, networkUrl, replitUrl);
 
 child.on("exit", (code, signal) => {
   if (signal) {

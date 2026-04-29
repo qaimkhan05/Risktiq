@@ -2,6 +2,22 @@ function trimTrailingSlash(value: string) {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
+function getReplitBaseUrl() {
+  const deploymentDomain = process.env.REPLIT_DOMAINS?.split(",")
+    .map((value) => value.trim())
+    .find(Boolean);
+
+  if (deploymentDomain) {
+    return trimTrailingSlash(`https://${deploymentDomain}`);
+  }
+
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    return trimTrailingSlash(`https://${process.env.REPLIT_DEV_DOMAIN}`);
+  }
+
+  return null;
+}
+
 export function getBaseUrl(request?: Request) {
   const forwardedHost = request?.headers.get("x-forwarded-host");
   const forwardedProto = request?.headers.get("x-forwarded-proto");
@@ -20,6 +36,12 @@ export function getBaseUrl(request?: Request) {
 
   if (process.env.NEXTAUTH_URL) {
     return trimTrailingSlash(process.env.NEXTAUTH_URL);
+  }
+
+  const replitBaseUrl = getReplitBaseUrl();
+
+  if (replitBaseUrl) {
+    return replitBaseUrl;
   }
 
   if (process.env.VERCEL_URL) {
